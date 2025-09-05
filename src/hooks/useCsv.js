@@ -1,19 +1,16 @@
-import { useEffect, useState } from "react";
 import Papa from "papaparse";
 
-export default function useCsv(path) {
-  const [data, setData] = useState([]);
-
-  useEffect(() => {
+export async function loadCsvData(path) {
+  return new Promise((resolve, reject) => {
     Papa.parse(path, {
       download: true,
-      header: true,
-      skipEmptyLines: true,
-      complete: (result) => {
-        setData(result.data);
+      header: true,   // ensures you get objects, not arrays
+      complete: (results) => {
+        console.log(`📂 Loaded: ${path}`);
+        console.log(results.data.slice(0, 5)); // 👈 log first 5 rows
+        resolve(results.data);
       },
+      error: (err) => reject(err),
     });
-  }, [path]);
-
-  return data;
+  });
 }
