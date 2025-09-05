@@ -5,6 +5,7 @@ import Papa from 'papaparse';
 function useCsv(path) {
   const [data, setData] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
   
   useEffect(() => {
     if (!path) {
@@ -12,29 +13,38 @@ function useCsv(path) {
       return;
     }
     
+    console.log('Loading CSV from:', path);
+    
     Papa.parse(path, {
       download: true,
       header: true,
       skipEmptyLines: true,
       complete: (res) => {
+        console.log('CSV loaded successfully:', path, 'rows:', res.data?.length);
         setData(res.data || []);
         setLoading(false);
+        setError(null);
       },
-      error: () => {
+      error: (err) => {
+        console.error('CSV loading error:', path, err);
         setData([]);
         setLoading(false);
+        setError(err);
       },
     });
   }, [path]);
   
-  return { data, loading };
+  return { data, loading, error };
 }
 
 // Search Component
 function SearchEntry({ onSearch, onSelect }) {
   const [query, setQuery] = useState('');
-  const { data: occupations } = useCsv('/data/occupations.csv');
-  const { data: skills } = useCsv('/data/skills.csv');
+  const { data: occupations, loading: occLoading, error: occError } = useCsv('/data/occupations.csv');
+  const { data: skills, loading: skillsLoading, error: skillsError } = useCsv('/data/skills.csv');
+  
+  // Debug info
+  console.log('Occupations loaded:', occupations.length, 'Skills loaded:', skills.length);
 
   const results = useMemo(() => {
     if (!query.trim()) return [];
@@ -107,16 +117,27 @@ function SearchEntry({ onSearch, onSelect }) {
       <div className="mt-8">
         <p className="text-sm text-gray-500 mb-3">Popular searches:</p>
         <div className="flex flex-wrap gap-2">
-          {['Data Scientist', 'Software Engineer', 'Nurse', 'Teacher', 'Python', 'Communication'].map(term => (
+          {['Air force officer', 'Military Engineer', 'Accounting Manager'].map(term => (
             <button
               key={term}
               onClick={() => setQuery(term)}
-              className="px-3 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full"
+              className="px-12 py-1 text-sm bg-gray-100 hover:bg-gray-200 rounded-full"
             >
               {term}
             </button>
           ))}
         </div>
+        
+        {/* Debug info */}
+        {(occLoading || skillsLoading) && (
+          <p className="text-sm text-orange-600 mt-4">Loading data...</p>
+        )}
+        {(occError || skillsError) && (
+          <p className="text-sm text-red-600 mt-4">Error loading data. Check console for details.</p>
+        )}
+        <p className="text-xs text-gray-400 mt-2">
+          Data status: {occupations.length} occupations, {skills.length} skills loaded
+        </p>
       </div>
     </div>
   );
