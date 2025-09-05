@@ -38,3 +38,7 @@ build/
 
 # Local datasets (if we download them later)
 public/data/
+public/processed_csv/
+
+# Data processing scripts
+prepareCSV.js
