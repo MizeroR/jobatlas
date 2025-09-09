@@ -1,9 +1,7 @@
-"use client";
-
 import { useState, useEffect } from "react";
 import { ChevronLeft, ChevronRight } from "lucide-react";
-import { Button } from "../components/ui/button";
-import ParticleNetwork from "../components/particle-network";
+import { Button } from "./ui/Button";
+import ParticleNetwork from "./particle-network";
 import "./globals.css";
 
 const slides = [
@@ -63,7 +61,7 @@ export default function RevSliderDemo() {
     }, 750);
   };
 
-  const goToSlide = (index: number) => {
+  const goToSlide = (index) => {
     if (index !== currentSlide && !isAnimating) {
       setIsAnimating(true);
       setTimeout(() => {
