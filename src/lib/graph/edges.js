@@ -6,8 +6,8 @@ export async function loadOccupationHierarchy() {
   if (error) throw error
 
   return data.map((row) => ({
-    source: `occupation-${row.parentid}`,
-    target: `occupation-${row.childid}`,
+    source: row.parentid,
+    target: row.childid,
     type: "occupation_hierarchy",
     ...row
   }))
@@ -19,8 +19,8 @@ export async function loadSkillHierarchy() {
   if (error) throw error
 
   return data.map((row) => ({
-    source: `skill-${row.parentid}`,
-    target: `skill-${row.childid}`,
+    source: row.parentid,
+    target: row.childid,
     type: "skill_hierarchy",
     ...row
   }))
@@ -32,8 +32,8 @@ export async function loadOccupationToSkillRelations() {
   if (error) throw error
 
   return data.map((row) => ({
-    source: `occupation-${row.occupationid}`,
-    target: `skill-${row.skillid}`,
+    source: row.occupationid,
+    target: row.skillid,
     type: row.relationtype || "occupation_to_skill",
     ...row
   }))
@@ -45,8 +45,8 @@ export async function loadSkillToSkillRelations() {
   if (error) throw error
 
   return data.map((row) => ({
-    source: `skill-${row.requiringid}`,
-    target: `skill-${row.requiredid}`,
+    source: row.requiringid,
+    target: row.requiredid,
     type: row.relationtype || "skill_to_skill",
     ...row
   }))
