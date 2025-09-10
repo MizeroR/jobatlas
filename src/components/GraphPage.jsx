@@ -10,6 +10,7 @@ function App() {
   const [graphData, setGraphData] = useState(null)
   const [showLayoutMenu, setShowLayoutMenu] = useState(false)
   const [layoutActions, setLayoutActions] = useState(null)
+  const [isFA2Running, setIsFA2Running] = useState(false)
 
   return (
     <div className="h-screen flex flex-col bg-[#1E1B2E]">
@@ -61,12 +62,15 @@ function App() {
               <div className="absolute top-full mt-1 right-0 bg-[#2A2438] border border-[#9D4EDD]/20 rounded-lg shadow-lg min-w-[120px] z-50">
                 <button
                   onClick={() => {
-                    layoutActions?.toggleFA2()
+                    if (layoutActions?.toggleFA2) {
+                      layoutActions.toggleFA2()
+                      setIsFA2Running(!isFA2Running)
+                    }
                     setShowLayoutMenu(false)
                   }}
                   className="w-full px-4 py-2 text-left text-[#E9ECEF] hover:bg-[#FFB703]/10 hover:text-[#FFB703] transition first:rounded-t-lg"
                 >
-                  {layoutActions?.isFA2Running ? 'Stop FA2' : 'Start FA2'}
+                  {isFA2Running ? 'Stop FA2' : 'Start FA2'}
                 </button>
                 <button
                   onClick={() => {
@@ -98,7 +102,10 @@ function App() {
             focusNode={focusNode} 
             onDataLoad={setGraphData}
             onFocusComplete={() => setFocusNode(null)}
-            onLayoutActionsReady={setLayoutActions}
+            onLayoutActionsReady={(actions) => {
+              setLayoutActions(actions)
+              setIsFA2Running(actions.isFA2Running)
+            }}
           />
         ) : (
           <BrowseView />

@@ -1,5 +1,5 @@
 // src/components/GraphViewer.jsx
-import { useEffect, useRef, useState } from "react"
+import { useEffect, useRef, useState, useCallback } from "react"
 import { Sigma } from "sigma"
 import Graph from "graphology"
 import { circular } from "graphology-layout"
@@ -27,6 +27,81 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
   const [fa2Layout, setFa2Layout] = useState(null)
   const [isFA2Running, setIsFA2Running] = useState(false)
   const cancelCurrentAnimationRef = useRef(null)
+
+  const stopFA2 = useCallback(() => {
+    if (!fa2Layout) return
+    fa2Layout.stop()
+    setIsFA2Running(false)
+  }, [fa2Layout])
+
+  const startFA2 = useCallback(() => {
+    if (!fa2Layout) return
+    if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
+    fa2Layout.start()
+    setIsFA2Running(true)
+  }, [fa2Layout])
+
+  const toggleFA2Layout = useCallback(() => {
+    if (!fa2Layout) return
+    
+    if (fa2Layout.isRunning()) {
+      stopFA2()
+    } else {
+      startFA2()
+    }
+  }, [fa2Layout, stopFA2, startFA2])
+
+  const randomLayout = useCallback(() => {
+    if (!sigmaRef.current) return
+    
+    // Stop FA2 if running
+    if (fa2Layout?.isRunning()) stopFA2()
+    if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
+
+    const graph = sigmaRef.current.getGraph()
+    
+    // Calculate position extents to keep scale uniform
+    const xExtents = { min: 0, max: 0 }
+    const yExtents = { min: 0, max: 0 }
+    
+    graph.forEachNode((_node, attributes) => {
+      xExtents.min = Math.min(attributes.x, xExtents.min)
+      xExtents.max = Math.max(attributes.x, xExtents.max)
+      yExtents.min = Math.min(attributes.y, yExtents.min)
+      yExtents.max = Math.max(attributes.y, yExtents.max)
+    })
+    
+    const randomPositions = {}
+    graph.forEachNode((node) => {
+      // Create random positions respecting position extents
+      randomPositions[node] = {
+        x: Math.random() * (xExtents.max - xExtents.min),
+        y: Math.random() * (yExtents.max - yExtents.min)
+      }
+    })
+    
+    // Use sigma animation to update new positions
+    cancelCurrentAnimationRef.current = animateNodes(graph, randomPositions, { duration: 2000 })
+  }, [fa2Layout, stopFA2])
+
+  const circularLayout = useCallback(() => {
+    if (!sigmaRef.current) return
+    
+    // Stop FA2 if running
+    if (fa2Layout?.isRunning()) stopFA2()
+    if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
+
+    const graph = sigmaRef.current.getGraph()
+    
+    // Process positions before applying them through animateNodes
+    const circularPositions = circular(graph, { scale: 100 })
+    
+    // Use sigma animation to update positions
+    cancelCurrentAnimationRef.current = animateNodes(graph, circularPositions, { 
+      duration: 2000, 
+      easing: "linear" 
+    })
+  }, [fa2Layout, stopFA2])
 
   useEffect(() => {
     let isMounted = true
@@ -131,15 +206,7 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
         
         setIsGraphLoading(false)
         
-        // Expose layout actions to parent
-        if (onLayoutActionsReady) {
-          onLayoutActionsReady({
-            toggleFA2: toggleFA2Layout,
-            randomLayout,
-            circularLayout,
-            isFA2Running
-          })
-        }
+        setIsGraphLoading(false)
       } catch (error) {
         console.error('Graph error:', error)
         setIsGraphLoading(false)
@@ -163,6 +230,18 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
       }
     }
   }, [activeFilters])
+
+  // Expose layout actions when FA2 layout is ready
+  useEffect(() => {
+    if (fa2Layout && onLayoutActionsReady) {
+      onLayoutActionsReady({
+        toggleFA2: toggleFA2Layout,
+        randomLayout,
+        circularLayout,
+        isFA2Running
+      })
+    }
+  }, [fa2Layout, toggleFA2Layout, randomLayout, circularLayout, isFA2Running, onLayoutActionsReady])
 
   // Separate effect for focusing on nodes
   useEffect(() => {
@@ -232,67 +311,7 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
     return false
   }
 
-  const toggleFA2Layout = () => {
-    if (!fa2Layout) return
-    
-    if (fa2Layout.isRunning()) {
-      fa2Layout.stop()
-      setIsFA2Running(false)
-    } else {
-      if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
-      fa2Layout.start()
-      setIsFA2Running(true)
-    }
-  }
 
-  const randomLayout = () => {
-    if (!sigmaRef.current) return
-    
-    if (fa2Layout?.isRunning()) {
-      fa2Layout.stop()
-      setIsFA2Running(false)
-    }
-    if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
-
-    const graph = sigmaRef.current.getGraph()
-    const xExtents = { min: 0, max: 0 }
-    const yExtents = { min: 0, max: 0 }
-    
-    graph.forEachNode((_node, attributes) => {
-      xExtents.min = Math.min(attributes.x, xExtents.min)
-      xExtents.max = Math.max(attributes.x, xExtents.max)
-      yExtents.min = Math.min(attributes.y, yExtents.min)
-      yExtents.max = Math.max(attributes.y, yExtents.max)
-    })
-    
-    const randomPositions = {}
-    graph.forEachNode((node) => {
-      randomPositions[node] = {
-        x: Math.random() * (xExtents.max - xExtents.min),
-        y: Math.random() * (yExtents.max - yExtents.min)
-      }
-    })
-    
-    cancelCurrentAnimationRef.current = animateNodes(graph, randomPositions, { duration: 2000 })
-  }
-
-  const circularLayout = () => {
-    if (!sigmaRef.current) return
-    
-    if (fa2Layout?.isRunning()) {
-      fa2Layout.stop()
-      setIsFA2Running(false)
-    }
-    if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
-
-    const graph = sigmaRef.current.getGraph()
-    const circularPositions = circular(graph, { scale: 100 })
-    
-    cancelCurrentAnimationRef.current = animateNodes(graph, circularPositions, { 
-      duration: 2000, 
-      easing: "linear" 
-    })
-  }
 
   return (
     <div className="relative">

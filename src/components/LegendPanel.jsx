@@ -87,21 +87,6 @@ export default function LegendPanel({ selectedNode, onClose }) {
                 </div>
               </div>
 
-              {/* Node Sizes */}
-              <div className="mb-6">
-                <h3 className="font-semibold mb-3 text-[#E9ECEF]">Node Sizes</h3>
-                <div className="space-y-2">
-                  <div className="flex items-center gap-3">
-                    <div className="w-6 h-6 rounded-full bg-[#E9ECEF]/40"></div>
-                    <span className="text-[#E9ECEF]/80">Larger = More connections</span>
-                  </div>
-                  <div className="flex items-center gap-3">
-                    <div className="w-3 h-3 rounded-full bg-[#E9ECEF]/40"></div>
-                    <span className="text-[#E9ECEF]/80">Smaller = Fewer connections</span>
-                  </div>
-                </div>
-              </div>
-
               {/* Interactions */}
               <div>
                 <h3 className="font-semibold mb-3 text-[#E9ECEF]">Interactions</h3>
@@ -140,11 +125,6 @@ export default function LegendPanel({ selectedNode, onClose }) {
                   </div>
                 </div>
               )}
-              
-              <div className="text-xs text-[#E9ECEF]/60 pt-4 border-t border-[#9D4EDD]/20">
-                <p>Connections: {selectedNode.degree || 0}</p>
-                <p>ID: {selectedNode.id}</p>
-              </div>
             </div>
           )}
 
