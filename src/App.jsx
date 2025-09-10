@@ -1,66 +1,16 @@
-// src/App.jsx
-import { useState } from 'react'
-import GraphViewer from "./components/GraphViewer"
-import BrowseView from "./components/BrowseView"
-import SearchBar from "./components/SearchBar"
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import HomePage from "./components/HomePage";
+import GraphViewer from "./components/GraphPage";
 
 function App() {
-  const [activeView, setActiveView] = useState('graph')
-  const [focusNode, setFocusNode] = useState(null)
-  const [graphData, setGraphData] = useState(null)
-
   return (
-    <div className="h-screen flex flex-col">
-      <nav className="bg-white border-b shadow-sm z-50">
-        <div className="flex justify-center">
-          <button
-            onClick={() => setActiveView('graph')}
-            className={`px-6 py-3 font-medium border-b-2 transition-colors ${
-              activeView === 'graph' 
-                ? 'border-blue-500 text-blue-600 bg-blue-50' 
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Graph
-          </button>
-          <button
-            onClick={() => setActiveView('browse')}
-            className={`px-6 py-3 font-medium border-b-2 transition-colors ${
-              activeView === 'browse' 
-                ? 'border-blue-500 text-blue-600 bg-blue-50' 
-                : 'border-transparent text-gray-600 hover:text-gray-900'
-            }`}
-          >
-            Browse
-          </button>
-        </div>
-      </nav>
-      
-      {activeView === 'graph' && (
-        <div className="fixed top-16 left-1/2 transform -translate-x-1/2 z-40">
-          <SearchBar 
-            data={graphData} 
-            onNodeSelect={(node) => {
-              setFocusNode(node)
-              setActiveView('graph')
-            }} 
-          />
-        </div>
-      )}
-      
-      <div className="flex-1 overflow-hidden">
-        {activeView === 'graph' ? (
-          <GraphViewer 
-            focusNode={focusNode} 
-            onDataLoad={setGraphData}
-            onFocusComplete={() => setFocusNode(null)}
-          />
-        ) : (
-          <BrowseView />
-        )}
-      </div>
-    </div>
-  )
+    <Router>
+      <Routes>
+        <Route path="/" element={<HomePage />} />
+        <Route path="/graph" element={<GraphViewer />} />
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;
