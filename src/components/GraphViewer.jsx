@@ -1,6 +1,6 @@
 // src/components/GraphViewer.jsx
 import { useEffect, useRef, useState, useCallback } from "react"
-import { Sigma } from "sigma"
+import Sigma from "sigma"
 import Graph from "graphology"
 import { circular } from "graphology-layout"
 import forceAtlas2 from "graphology-layout-forceatlas2"
@@ -17,7 +17,6 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
   const [selectedNode, setSelectedNode] = useState(null)
   const [graphData, setGraphData] = useState(null)
   const [isGraphLoading, setIsGraphLoading] = useState(true)
-  const [highlightedNode, setHighlightedNode] = useState(null)
   const [activeFilters, setActiveFilters] = useState({
     occupation: true,
     skill: true,
@@ -27,6 +26,14 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
   const [fa2Layout, setFa2Layout] = useState(null)
   const [isFA2Running, setIsFA2Running] = useState(false)
   const cancelCurrentAnimationRef = useRef(null)
+  
+  // State for interactions
+  const [state, setState] = useState({
+    hoveredNode: null,
+    searchQuery: "",
+    selectedNodeId: null,
+    hoveredNeighbors: null
+  })
 
   const stopFA2 = useCallback(() => {
     if (!fa2Layout) return
@@ -54,54 +61,57 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
   const randomLayout = useCallback(() => {
     if (!sigmaRef.current) return
     
-    // Stop FA2 if running
     if (fa2Layout?.isRunning()) stopFA2()
     if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
 
     const graph = sigmaRef.current.getGraph()
-    
-    // Calculate position extents to keep scale uniform
-    const xExtents = { min: 0, max: 0 }
-    const yExtents = { min: 0, max: 0 }
-    
-    graph.forEachNode((_node, attributes) => {
-      xExtents.min = Math.min(attributes.x, xExtents.min)
-      xExtents.max = Math.max(attributes.x, xExtents.max)
-      yExtents.min = Math.min(attributes.y, yExtents.min)
-      yExtents.max = Math.max(attributes.y, yExtents.max)
-    })
-    
     const randomPositions = {}
+    
     graph.forEachNode((node) => {
-      // Create random positions respecting position extents
       randomPositions[node] = {
-        x: Math.random() * (xExtents.max - xExtents.min),
-        y: Math.random() * (yExtents.max - yExtents.min)
+        x: Math.random() * 100,
+        y: Math.random() * 100
       }
     })
     
-    // Use sigma animation to update new positions
     cancelCurrentAnimationRef.current = animateNodes(graph, randomPositions, { duration: 2000 })
   }, [fa2Layout, stopFA2])
 
   const circularLayout = useCallback(() => {
     if (!sigmaRef.current) return
     
-    // Stop FA2 if running
     if (fa2Layout?.isRunning()) stopFA2()
     if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
 
     const graph = sigmaRef.current.getGraph()
-    
-    // Process positions before applying them through animateNodes
     const circularPositions = circular(graph, { scale: 100 })
     
-    // Use sigma animation to update positions
     cancelCurrentAnimationRef.current = animateNodes(graph, circularPositions, { 
       duration: 2000, 
       easing: "linear" 
     })
   }, [fa2Layout, stopFA2])
+
+  // Set hovered node function
+  const setHoveredNode = useCallback((node) => {
+    if (node) {
+      setState(prev => ({
+        ...prev,
+        hoveredNode: node,
+        hoveredNeighbors: new Set(sigmaRef.current?.getGraph().neighbors(node) || [])
+      }))
+    } else {
+      setState(prev => ({
+        ...prev,
+        hoveredNode: null,
+        hoveredNeighbors: null
+      }))
+    }
+    
+    if (sigmaRef.current) {
+      sigmaRef.current.refresh({ skipIndexation: true })
+    }
+  }, [])
 
   useEffect(() => {
     let isMounted = true
@@ -134,21 +144,32 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
           filteredNodeIds.has(edge.source) && filteredNodeIds.has(edge.target)
         )
 
-        // Add filtered nodes with initial random positions
+        // Add filtered nodes
         filteredNodes.forEach((node) => {
+          const colors = {
+            occupation: "#2563eb",
+            skill: "#dc2626",
+            occupation_group: "#059669",
+            skill_group: "#7c3aed"
+          }
+          
           graph.addNode(node.id, {
             label: node.label,
             x: Math.random() * 100,
             y: Math.random() * 100,
-            nodeType: node.type,
-            labelColor: "#E9ECEF"
+            size: 5,
+            color: colors[node.type] || "#6b7280",
+            nodeType: node.type
           })
         })
         
         // Add filtered edges
         filteredEdges.forEach((edge) => {
           if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
-            graph.addEdge(edge.source, edge.target)
+            graph.addEdge(edge.source, edge.target, {
+              size: 1,
+              color: "#999"
+            })
           }
         })
         
@@ -156,44 +177,57 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
         const sensibleSettings = forceAtlas2.inferSettings(graph)
         const fa2 = new FA2Layout(graph, { settings: sensibleSettings })
         setFa2Layout(fa2)
-        // Style nodes based on degree and type
-        graph.forEachNode((node, attributes) => {
-          const nodeDegree = graph.degree(node)
-          const nodeType = attributes.nodeType
-          
-          graph.setNodeAttribute(node, "size", Math.max(3, Math.min(15, nodeDegree * 0.8)))
-          
-          // Improved color scheme
-          const colors = {
-            occupation: "#2563eb",      // Blue
-            skill: "#dc2626",           // Red  
-            occupation_group: "#059669", // Green
-            skill_group: "#7c3aed"      // Purple
-          }
-          
-          graph.setNodeAttribute(node, "color", 
-            colors[nodeType] || "#6b7280"
-          )
-          
-          // Store original color for highlighting
-          graph.setNodeAttribute(node, "originalColor", colors[nodeType] || "#6b7280")
-        })
 
         if (!isMounted) return
 
-        sigmaRef.current = new Sigma(graph, containerRef.current, {
-          allowInvalidContainer: true,
-          renderEdges: true,
-          defaultEdgeColor: "#999",
-          edgeLabelSize: "proportional",
-          defaultEdgeType: "line"
+        // Create Sigma instance
+        sigmaRef.current = new Sigma(graph, containerRef.current)
+        
+        // Set up node reducer for hover effects
+        sigmaRef.current.setSetting("nodeReducer", (node, data) => {
+          const res = { ...data }
+          
+          if (state.hoveredNeighbors && !state.hoveredNeighbors.has(node) && state.hoveredNode !== node) {
+            res.label = ""
+            res.color = "#f6f6f6"
+          }
+          
+          if (state.selectedNodeId === node) {
+            res.highlighted = true
+          }
+          
+          return res
         })
         
-        // Add click event listener
+        // Set up edge reducer for hover effects
+        sigmaRef.current.setSetting("edgeReducer", (edge, data) => {
+          const res = { ...data }
+          
+          if (state.hoveredNode && 
+              !graph.extremities(edge).every(n => 
+                n === state.hoveredNode || graph.areNeighbors(n, state.hoveredNode)
+              )) {
+            res.hidden = true
+          }
+          
+          return res
+        })
+        
+        // Bind interactions
+        sigmaRef.current.on("enterNode", ({ node }) => {
+          setHoveredNode(node)
+        })
+        
+        sigmaRef.current.on("leaveNode", () => {
+          setHoveredNode(null)
+        })
+        
         sigmaRef.current.on('clickNode', (event) => {
           const nodeId = event.node
           const nodeData = graph.getNodeAttributes(nodeId)
           const originalNode = filteredNodes.find(n => n.id === nodeId)
+          
+          setState(prev => ({ ...prev, selectedNodeId: nodeId }))
           
           setSelectedNode({
             id: nodeId,
@@ -203,8 +237,6 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
             degree: graph.degree(nodeId)
           })
         })
-        
-        setIsGraphLoading(false)
         
         setIsGraphLoading(false)
       } catch (error) {
@@ -229,7 +261,7 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
         sigmaRef.current = null
       }
     }
-  }, [activeFilters])
+  }, [activeFilters, setHoveredNode])
 
   // Expose layout actions when FA2 layout is ready
   useEffect(() => {
@@ -280,32 +312,16 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, on
       const graph = sigmaRef.current.getGraph()
       
       if (graph.hasNode(nodeId)) {
-        const nodeAttributes = graph.getNodeAttributes(nodeId)
+        const nodePosition = sigmaRef.current.getNodeDisplayData(nodeId)
         
-        // Clear ALL previous highlights
-        graph.forEachNode((node) => {
-          const originalColor = graph.getNodeAttribute(node, 'originalColor')
-          const originalSize = Math.max(3, Math.min(15, graph.degree(node) * 0.8))
-          graph.setNodeAttribute(node, 'color', originalColor)
-          graph.setNodeAttribute(node, 'size', originalSize)
+        setState(prev => ({ ...prev, selectedNodeId: nodeId }))
+        
+        sigmaRef.current.getCamera().animate(nodePosition, {
+          duration: 500
         })
         
-        // Highlight the focused node
-        graph.setNodeAttribute(nodeId, 'color', '#ff6b35') // Bright orange
-        graph.setNodeAttribute(nodeId, 'size', Math.max(20, nodeAttributes.size * 2)) // Make it bigger
-        setHighlightedNode(nodeId)
-        
-        // Move camera to node with big zoom
-        sigmaRef.current.getCamera().goTo({
-          x: nodeAttributes.x,
-          y: nodeAttributes.y,
-          ratio: 0.01
-        })
-        
-        console.log('Focused and highlighted node:', nodeAttributes.label)
+        sigmaRef.current.refresh({ skipIndexation: true })
         return true
-      } else {
-        console.log('Node', nodeId, 'not found in current graph')
       }
     }
     return false
