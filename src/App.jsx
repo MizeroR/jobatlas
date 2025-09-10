@@ -8,6 +8,7 @@ function App() {
   const [activeView, setActiveView] = useState('graph')
   const [focusNode, setFocusNode] = useState(null)
   const [graphData, setGraphData] = useState(null)
+  const [layoutActions, setLayoutActions] = useState(null)
 
   return (
     <div className="h-screen flex flex-col">
@@ -43,7 +44,14 @@ function App() {
             onNodeSelect={(node) => {
               setFocusNode(node)
               setActiveView('graph')
-            }} 
+            }}
+            onLayoutAction={(action) => {
+              if (layoutActions) {
+                if (action === 'toggleFA2') layoutActions.toggleFA2()
+                else if (action === 'random') layoutActions.randomLayout()
+                else if (action === 'circular') layoutActions.circularLayout()
+              }
+            }}
           />
         </div>
       )}
@@ -54,6 +62,7 @@ function App() {
             focusNode={focusNode} 
             onDataLoad={setGraphData}
             onFocusComplete={() => setFocusNode(null)}
+            onLayoutAction={setLayoutActions}
           />
         ) : (
           <BrowseView />
