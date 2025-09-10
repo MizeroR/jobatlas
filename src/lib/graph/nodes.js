@@ -26,7 +26,7 @@ export async function loadOccupations() {
   if (error) throw error
 
   return data.map((row) => ({
-    id: `occupation-${row.id}`,
+    id: row.id,
     label: formatLabel(row.preferredlabel) || "Unnamed Occupation",
     type: "occupation",
     ...row
@@ -39,7 +39,7 @@ export async function loadSkills() {
   if (error) throw error
 
   return data.map((row) => ({
-    id: `skill-${row.id}`,
+    id: row.id,
     label: formatLabel(row.preferredlabel) || "Unnamed Skill",
     type: "skill",
     ...row
@@ -52,7 +52,7 @@ export async function loadOccupationGroups() {
   if (error) throw error
 
   return data.map((row) => ({
-    id: `occ-group-${row.id}`,
+    id: row.id,
     label: formatLabel(row.preferredlabel) || "Unnamed Occupation Group",
     type: "occupation_group",
     ...row
@@ -65,7 +65,7 @@ export async function loadSkillGroups() {
   if (error) throw error
 
   return data.map((row) => ({
-    id: `skill-group-${row.id}`,
+    id: row.id,
     label: formatLabel(row.preferredlabel) || "Unnamed Skill Group",
     type: "skill_group",
     ...row
