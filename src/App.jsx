@@ -1,4 +1,3 @@
-// src/App.jsx
 import { useState } from 'react'
 import GraphViewer from "./components/GraphViewer"
 import BrowseView from "./components/BrowseView"
@@ -60,7 +59,7 @@ function App() {
         )}
       </div>
     </div>
-  )
+  );
 }
 
-export default App
+export default App;
