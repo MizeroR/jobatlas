@@ -59,13 +59,21 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
             label: node.label,
             x: Math.random() * 100,
             y: Math.random() * 100,
-            nodeType: node.type
+            nodeType: node.type,
+            labelColor: "#E9ECEF"
           })
         })
         
-        // Apply ForceAtlas2 layout
+        // Add filtered edges
+        filteredEdges.forEach((edge) => {
+          if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
+            graph.addEdge(edge.source, edge.target)
+          }
+        })
+        
+        // Apply ForceAtlas2 layout with fewer iterations
         forceAtlas2.assign(graph, {
-          iterations: 100,
+          iterations: 50,
           settings: {
             gravity: 1,
             scalingRatio: 10,
@@ -178,12 +186,13 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
       if (graph.hasNode(nodeId)) {
         const nodeAttributes = graph.getNodeAttributes(nodeId)
         
-        // Clear previous highlight
-        if (highlightedNode && graph.hasNode(highlightedNode)) {
-          const prevOriginalColor = graph.getNodeAttribute(highlightedNode, 'originalColor')
-          graph.setNodeAttribute(highlightedNode, 'color', prevOriginalColor)
-          graph.setNodeAttribute(highlightedNode, 'size', graph.getNodeAttribute(highlightedNode, 'size'))
-        }
+        // Clear ALL previous highlights
+        graph.forEachNode((node) => {
+          const originalColor = graph.getNodeAttribute(node, 'originalColor')
+          const originalSize = Math.max(3, Math.min(15, graph.degree(node) * 0.8))
+          graph.setNodeAttribute(node, 'color', originalColor)
+          graph.setNodeAttribute(node, 'size', originalSize)
+        })
         
         // Highlight the focused node
         graph.setNodeAttribute(nodeId, 'color', '#ff6b35') // Bright orange
@@ -208,6 +217,15 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
 
   return (
     <div className="relative">
+      <style>{`
+        .sigma-labels text {
+          fill: #E9ECEF !important;
+          font-size: 12px !important;
+        }
+        .sigma-node-label {
+          color: #E9ECEF !important;
+        }
+      `}</style>
       <LeftPanel 
         data={graphData}
         onFilterChange={handleFilterChange}
@@ -219,10 +237,10 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
         style={{ height: "calc(100vh - 3rem)", width: "100vw", marginTop: "3rem" }} 
       >
         {isGraphLoading && (
-          <div className="absolute inset-0 flex items-center justify-center bg-white">
+          <div className="absolute inset-0 flex items-center justify-center bg-[#1E1B2E]">
             <div className="relative">
-              <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent animate-spin"></div>
-              <div className="absolute inset-0 w-12 h-12 border-2 border-transparent border-r-blue-300 animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
+              <div className="w-12 h-12 border-2 border-[#FFB703] border-t-transparent animate-spin"></div>
+              <div className="absolute inset-0 w-12 h-12 border-2 border-transparent border-r-[#9D4EDD] animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
             </div>
           </div>
         )}

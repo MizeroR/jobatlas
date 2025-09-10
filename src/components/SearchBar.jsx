@@ -31,12 +31,12 @@ export default function SearchBar({ data, onNodeSelect }) {
 
   const getNodeColor = (type) => {
     const colors = {
-      occupation: 'bg-blue-100 text-blue-800',
-      skill: 'bg-red-100 text-red-800',
-      occupation_group: 'bg-green-100 text-green-800',
-      skill_group: 'bg-purple-100 text-purple-800'
+      occupation: 'bg-[#4CC9F0]/20 text-[#4CC9F0]',
+      skill: 'bg-[#FFB703]/20 text-[#FFB703]',
+      occupation_group: 'bg-[#9D4EDD]/20 text-[#9D4EDD]',
+      skill_group: 'bg-[#4CC9F0]/20 text-[#4CC9F0]'
     }
-    return colors[type] || 'bg-gray-100 text-gray-800'
+    return colors[type] || 'bg-[#E9ECEF]/20 text-[#E9ECEF]'
   }
 
   return (
@@ -47,23 +47,23 @@ export default function SearchBar({ data, onNodeSelect }) {
           placeholder="Search nodes..."
           value={searchTerm}
           onChange={(e) => setSearchTerm(e.target.value)}
-          className="w-80 px-4 py-2 pl-10 border border-gray-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+          className="w-80 px-4 py-2 pl-10 bg-[#2A2438] border border-[#9D4EDD]/30 rounded-lg text-[#E9ECEF] placeholder-[#E9ECEF]/60 focus:outline-none focus:ring-2 focus:ring-[#FFB703] focus:border-transparent"
         />
-        <svg className="absolute left-3 top-2.5 h-5 w-5 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <svg className="absolute left-3 top-2.5 h-5 w-5 text-[#E9ECEF]/60" fill="none" stroke="currentColor" viewBox="0 0 24 24">
           <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
         </svg>
       </div>
 
       {isOpen && suggestions.length > 0 && (
-        <div className="absolute top-full left-0 right-0 mt-1 bg-white border border-gray-200 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
+        <div className="absolute top-full left-0 right-0 mt-1 bg-[#2A2438] border border-[#9D4EDD]/30 rounded-lg shadow-lg z-50 max-h-80 overflow-y-auto">
           {suggestions.map((node) => (
             <button
               key={node.id}
               onClick={() => handleSelect(node)}
-              className="w-full text-left p-3 hover:bg-gray-50 border-b border-gray-100 last:border-b-0"
+              className="w-full text-left p-3 hover:bg-[#9D4EDD]/20 border-b border-[#9D4EDD]/20 last:border-b-0"
             >
               <div className="flex items-center justify-between">
-                <div className="font-medium text-gray-900">{node.label}</div>
+                <div className="font-medium text-[#E9ECEF]">{node.label}</div>
                 <span className={`ml-2 px-2 py-1 rounded text-xs font-medium ${getNodeColor(node.type)}`}>
                   {node.type.replace('_', ' ')}
                 </span>
