@@ -1,35 +1,32 @@
-import { useState } from 'react'
+import { useState } from 'react';
 
-export default function LeftPanel({ data, onFilterChange, onNodeSelect }) {
-  const [isOpen, setIsOpen] = useState(false)
-  const [expandedGroups, setExpandedGroups] = useState(new Set())
-  
+export default function LeftPanel({ onFilterChange }) {
+  const [isOpen, setIsOpen] = useState(false);
+
   const [filters, setFilters] = useState({
     occupation: true,
     skill: true,
     occupation_group: true,
-    skill_group: true
-  })
+    skill_group: true,
+  });
 
   const handleFilterChange = (type) => {
-    const newFilters = { ...filters, [type]: !filters[type] }
-    setFilters(newFilters)
-    onFilterChange(newFilters)
-  }
+    const newFilters = { ...filters, [type]: !filters[type] };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
 
   const toggleAll = () => {
-    const allEnabled = Object.values(filters).every(v => v)
+    const allEnabled = Object.values(filters).every((v) => v);
     const newFilters = {
       occupation: !allEnabled,
       skill: !allEnabled,
       occupation_group: !allEnabled,
-      skill_group: !allEnabled
-    }
-    setFilters(newFilters)
-    onFilterChange(newFilters)
-  }
-
-
+      skill_group: !allEnabled,
+    };
+    setFilters(newFilters);
+    onFilterChange(newFilters);
+  };
 
   return (
     <>
@@ -39,16 +36,28 @@ export default function LeftPanel({ data, onFilterChange, onNodeSelect }) {
           onClick={() => setIsOpen(true)}
           className="fixed top-16 left-4 z-50 bg-white shadow-lg rounded-lg p-3 hover:bg-gray-50"
         >
-          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 6h16M4 12h16M4 18h16" />
+          <svg
+            className="w-6 h-6"
+            fill="none"
+            stroke="currentColor"
+            viewBox="0 0 24 24"
+          >
+            <path
+              strokeLinecap="round"
+              strokeLinejoin="round"
+              strokeWidth={2}
+              d="M4 6h16M4 12h16M4 18h16"
+            />
           </svg>
         </button>
       )}
 
       {/* Left Panel */}
-      <div className={`fixed top-20 left-0 h-[calc(100vh-5rem)] w-80 bg-white shadow-xl transform transition-transform duration-300 z-40 ${
-        isOpen ? 'translate-x-0' : '-translate-x-full'
-      }`}>
+      <div
+        className={`fixed top-20 left-0 h-[calc(100vh-5rem)] w-80 bg-white shadow-xl transform transition-transform duration-300 z-40 ${
+          isOpen ? 'translate-x-0' : '-translate-x-full'
+        }`}
+      >
         <div className="p-4 h-full flex flex-col">
           <div className="flex justify-between items-center mb-4">
             <h2 className="text-lg font-bold">Filters</h2>
@@ -70,7 +79,7 @@ export default function LeftPanel({ data, onFilterChange, onNodeSelect }) {
                 Toggle All
               </button>
             </div>
-            
+
             <div className="space-y-3">
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
@@ -82,7 +91,7 @@ export default function LeftPanel({ data, onFilterChange, onNodeSelect }) {
                 <div className="w-3 h-3 rounded-full bg-blue-600"></div>
                 <span className="text-sm">Occupations</span>
               </label>
-              
+
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -93,7 +102,7 @@ export default function LeftPanel({ data, onFilterChange, onNodeSelect }) {
                 <div className="w-3 h-3 rounded-full bg-red-600"></div>
                 <span className="text-sm">Skills</span>
               </label>
-              
+
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -104,7 +113,7 @@ export default function LeftPanel({ data, onFilterChange, onNodeSelect }) {
                 <div className="w-3 h-3 rounded-full bg-green-600"></div>
                 <span className="text-sm">Occupation Groups</span>
               </label>
-              
+
               <label className="flex items-center gap-2 cursor-pointer">
                 <input
                   type="checkbox"
@@ -118,7 +127,10 @@ export default function LeftPanel({ data, onFilterChange, onNodeSelect }) {
             </div>
 
             <div className="text-xs text-gray-500 border-t pt-3 mt-4">
-              <p>Active filters: {Object.values(filters).filter(v => v).length}/4</p>
+              <p>
+                Active filters: {Object.values(filters).filter((v) => v).length}
+                /4
+              </p>
             </div>
           </div>
         </div>
@@ -132,5 +144,5 @@ export default function LeftPanel({ data, onFilterChange, onNodeSelect }) {
         />
       )}
     </>
-  )
+  );
 }
