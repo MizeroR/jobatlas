@@ -16,6 +16,7 @@
     "cytoscape-dagre": "^2.5.0",
     "fast-csv": "^5.0.5",
     "graphology": "^0.26.0",
+    "graphology-layout": "^0.6.1",
     "graphology-layout-forceatlas2": "^0.10.1",
     "graphology-metrics": "^2.4.0",
     "papaparse": "^5.5.3",

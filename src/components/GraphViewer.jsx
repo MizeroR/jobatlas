@@ -2,13 +2,16 @@
 import { useEffect, useRef, useState } from "react"
 import { Sigma } from "sigma"
 import Graph from "graphology"
+import { circular } from "graphology-layout"
 import forceAtlas2 from "graphology-layout-forceatlas2"
+import FA2Layout from "graphology-layout-forceatlas2/worker"
+import { animateNodes } from "sigma/utils"
 
 import { buildGraph } from "../lib/graph/buildGraph.js"
 import LegendPanel from "./LegendPanel"
 import LeftPanel from "./LeftPanel"
 
-export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) {
+export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete, onLayoutActionsReady }) {
   const containerRef = useRef(null)
   const sigmaRef = useRef(null)
   const [selectedNode, setSelectedNode] = useState(null)
@@ -21,6 +24,9 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
     occupation_group: true,
     skill_group: true
   })
+  const [fa2Layout, setFa2Layout] = useState(null)
+  const [isFA2Running, setIsFA2Running] = useState(false)
+  const cancelCurrentAnimationRef = useRef(null)
 
   useEffect(() => {
     let isMounted = true
@@ -71,16 +77,10 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
           }
         })
         
-        // Apply ForceAtlas2 layout with fewer iterations
-        forceAtlas2.assign(graph, {
-          iterations: 50,
-          settings: {
-            gravity: 1,
-            scalingRatio: 10,
-            strongGravityMode: false,
-            slowDown: 1
-          }
-        })
+        // Initialize FA2 layout
+        const sensibleSettings = forceAtlas2.inferSettings(graph)
+        const fa2 = new FA2Layout(graph, { settings: sensibleSettings })
+        setFa2Layout(fa2)
         // Style nodes based on degree and type
         graph.forEachNode((node, attributes) => {
           const nodeDegree = graph.degree(node)
@@ -130,6 +130,16 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
         })
         
         setIsGraphLoading(false)
+        
+        // Expose layout actions to parent
+        if (onLayoutActionsReady) {
+          onLayoutActionsReady({
+            toggleFA2: toggleFA2Layout,
+            randomLayout,
+            circularLayout,
+            isFA2Running
+          })
+        }
       } catch (error) {
         console.error('Graph error:', error)
         setIsGraphLoading(false)
@@ -140,6 +150,13 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
 
     return () => {
       isMounted = false
+      if (fa2Layout) {
+        fa2Layout.stop()
+        setFa2Layout(null)
+      }
+      if (cancelCurrentAnimationRef.current) {
+        cancelCurrentAnimationRef.current()
+      }
       if (sigmaRef.current) {
         sigmaRef.current.kill()
         sigmaRef.current = null
@@ -215,17 +232,89 @@ export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) 
     return false
   }
 
+  const toggleFA2Layout = () => {
+    if (!fa2Layout) return
+    
+    if (fa2Layout.isRunning()) {
+      fa2Layout.stop()
+      setIsFA2Running(false)
+    } else {
+      if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
+      fa2Layout.start()
+      setIsFA2Running(true)
+    }
+  }
+
+  const randomLayout = () => {
+    if (!sigmaRef.current) return
+    
+    if (fa2Layout?.isRunning()) {
+      fa2Layout.stop()
+      setIsFA2Running(false)
+    }
+    if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
+
+    const graph = sigmaRef.current.getGraph()
+    const xExtents = { min: 0, max: 0 }
+    const yExtents = { min: 0, max: 0 }
+    
+    graph.forEachNode((_node, attributes) => {
+      xExtents.min = Math.min(attributes.x, xExtents.min)
+      xExtents.max = Math.max(attributes.x, xExtents.max)
+      yExtents.min = Math.min(attributes.y, yExtents.min)
+      yExtents.max = Math.max(attributes.y, yExtents.max)
+    })
+    
+    const randomPositions = {}
+    graph.forEachNode((node) => {
+      randomPositions[node] = {
+        x: Math.random() * (xExtents.max - xExtents.min),
+        y: Math.random() * (yExtents.max - yExtents.min)
+      }
+    })
+    
+    cancelCurrentAnimationRef.current = animateNodes(graph, randomPositions, { duration: 2000 })
+  }
+
+  const circularLayout = () => {
+    if (!sigmaRef.current) return
+    
+    if (fa2Layout?.isRunning()) {
+      fa2Layout.stop()
+      setIsFA2Running(false)
+    }
+    if (cancelCurrentAnimationRef.current) cancelCurrentAnimationRef.current()
+
+    const graph = sigmaRef.current.getGraph()
+    const circularPositions = circular(graph, { scale: 100 })
+    
+    cancelCurrentAnimationRef.current = animateNodes(graph, circularPositions, { 
+      duration: 2000, 
+      easing: "linear" 
+    })
+  }
+
   return (
     <div className="relative">
       <style>{`
         .sigma-labels text {
-          fill: #E9ECEF !important;
+          fill: white !important;
+          color: white !important;
           font-size: 12px !important;
         }
         .sigma-node-label {
-          color: #E9ECEF !important;
+          color: white !important;
+        }
+        .sigma-container text {
+          fill: white !important;
+          color: white !important;
+        }
+        svg text {
+          fill: white !important;
         }
       `}</style>
+      
+      
       <LeftPanel 
         data={graphData}
         onFilterChange={handleFilterChange}
