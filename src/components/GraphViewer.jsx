@@ -8,11 +8,13 @@ import { buildGraph } from "../lib/graph/buildGraph.js"
 import LegendPanel from "./LegendPanel"
 import LeftPanel from "./LeftPanel"
 
-export default function GraphViewer() {
+export default function GraphViewer({ focusNode, onDataLoad, onFocusComplete }) {
   const containerRef = useRef(null)
   const sigmaRef = useRef(null)
   const [selectedNode, setSelectedNode] = useState(null)
   const [graphData, setGraphData] = useState(null)
+  const [isGraphLoading, setIsGraphLoading] = useState(true)
+  const [highlightedNode, setHighlightedNode] = useState(null)
   const [activeFilters, setActiveFilters] = useState({
     occupation: true,
     skill: true,
@@ -25,6 +27,7 @@ export default function GraphViewer() {
 
     async function initGraph() {
       try {
+        setIsGraphLoading(true)
         if (!containerRef.current || !isMounted) return
 
         // Kill existing renderer
@@ -37,7 +40,9 @@ export default function GraphViewer() {
         if (!isMounted) return
         
         // Store original data for node details
-        setGraphData({ nodes, edges })
+        const data = { nodes, edges }
+        setGraphData(data)
+        if (onDataLoad) onDataLoad(data)
         
         const graph = new Graph()
         
@@ -57,16 +62,7 @@ export default function GraphViewer() {
             nodeType: node.type
           })
         })
-
-        // Add filtered edges
-        filteredEdges.forEach((edge) => {
-          if (graph.hasNode(edge.source) && graph.hasNode(edge.target)) {
-            graph.addEdge(edge.source, edge.target, {
-              color: "rgba(128, 128, 128, 0.3)",
-              size: 0.5
-            })
-          }
-        })
+        
         // Apply ForceAtlas2 layout
         forceAtlas2.assign(graph, {
           iterations: 100,
@@ -95,12 +91,19 @@ export default function GraphViewer() {
           graph.setNodeAttribute(node, "color", 
             colors[nodeType] || "#6b7280"
           )
+          
+          // Store original color for highlighting
+          graph.setNodeAttribute(node, "originalColor", colors[nodeType] || "#6b7280")
         })
 
         if (!isMounted) return
 
         sigmaRef.current = new Sigma(graph, containerRef.current, {
-          allowInvalidContainer: true
+          allowInvalidContainer: true,
+          renderEdges: true,
+          defaultEdgeColor: "#999",
+          edgeLabelSize: "proportional",
+          defaultEdgeType: "line"
         })
         
         // Add click event listener
@@ -117,8 +120,11 @@ export default function GraphViewer() {
             degree: graph.degree(nodeId)
           })
         })
+        
+        setIsGraphLoading(false)
       } catch (error) {
         console.error('Graph error:', error)
+        setIsGraphLoading(false)
       }
     }
 
@@ -132,6 +138,24 @@ export default function GraphViewer() {
       }
     }
   }, [activeFilters])
+
+  // Separate effect for focusing on nodes
+  useEffect(() => {
+    if (focusNode && !isGraphLoading) {
+      // Small delay to ensure graph is fully rendered
+      const timer = setTimeout(() => {
+        const success = focusOnNode(focusNode.id)
+        if (success) {
+          console.log('Successfully focused on node:', focusNode.label)
+        } else {
+          console.log('Failed to focus on node:', focusNode.label, '- node may be filtered out')
+        }
+        if (onFocusComplete) onFocusComplete()
+      }, 100)
+      
+      return () => clearTimeout(timer)
+    }
+  }, [focusNode, isGraphLoading, onFocusComplete])
 
   const handleFilterChange = (filters) => {
     setActiveFilters(filters)
@@ -147,6 +171,41 @@ export default function GraphViewer() {
     })
   }
 
+  const focusOnNode = (nodeId) => {
+    if (sigmaRef.current && !isGraphLoading) {
+      const graph = sigmaRef.current.getGraph()
+      
+      if (graph.hasNode(nodeId)) {
+        const nodeAttributes = graph.getNodeAttributes(nodeId)
+        
+        // Clear previous highlight
+        if (highlightedNode && graph.hasNode(highlightedNode)) {
+          const prevOriginalColor = graph.getNodeAttribute(highlightedNode, 'originalColor')
+          graph.setNodeAttribute(highlightedNode, 'color', prevOriginalColor)
+          graph.setNodeAttribute(highlightedNode, 'size', graph.getNodeAttribute(highlightedNode, 'size'))
+        }
+        
+        // Highlight the focused node
+        graph.setNodeAttribute(nodeId, 'color', '#ff6b35') // Bright orange
+        graph.setNodeAttribute(nodeId, 'size', Math.max(20, nodeAttributes.size * 2)) // Make it bigger
+        setHighlightedNode(nodeId)
+        
+        // Move camera to node with big zoom
+        sigmaRef.current.getCamera().goTo({
+          x: nodeAttributes.x,
+          y: nodeAttributes.y,
+          ratio: 0.01
+        })
+        
+        console.log('Focused and highlighted node:', nodeAttributes.label)
+        return true
+      } else {
+        console.log('Node', nodeId, 'not found in current graph')
+      }
+    }
+    return false
+  }
+
   return (
     <div className="relative">
       <LeftPanel 
@@ -157,8 +216,17 @@ export default function GraphViewer() {
       <div 
         ref={containerRef} 
         className="absolute inset-0"
-        style={{ height: "100vh", width: "100vw" }} 
-      />
+        style={{ height: "calc(100vh - 3rem)", width: "100vw", marginTop: "3rem" }} 
+      >
+        {isGraphLoading && (
+          <div className="absolute inset-0 flex items-center justify-center bg-white">
+            <div className="relative">
+              <div className="w-12 h-12 border-2 border-blue-500 border-t-transparent animate-spin"></div>
+              <div className="absolute inset-0 w-12 h-12 border-2 border-transparent border-r-blue-300 animate-spin" style={{animationDirection: 'reverse', animationDuration: '1s'}}></div>
+            </div>
+          </div>
+        )}
+      </div>
       <LegendPanel 
         selectedNode={selectedNode} 
         onClose={() => setSelectedNode(null)}

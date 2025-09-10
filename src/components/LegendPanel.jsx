@@ -12,21 +12,23 @@ export default function LegendPanel({ selectedNode, onClose }) {
 
   return (
     <>
-      {/* Toggle Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="fixed top-4 right-4 z-50 bg-white shadow-lg rounded-lg p-3 hover:bg-gray-50"
-      >
-        <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-          <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
-        </svg>
-      </button>
+      {/* Toggle Button - Only show when panel is closed */}
+      {!isOpen && (
+        <button
+          onClick={() => setIsOpen(true)}
+          className="fixed top-16 right-4 z-50 bg-white shadow-lg rounded-lg p-3 hover:bg-gray-50"
+        >
+          <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+          </svg>
+        </button>
+      )}
 
       {/* Side Panel */}
-      <div className={`fixed top-0 right-0 h-full w-80 bg-white shadow-xl transform transition-transform duration-300 z-40 ${
+      <div className={`fixed top-20 right-0 h-[calc(100vh-5rem)] w-80 bg-white shadow-xl transform transition-transform duration-300 z-40 ${
         isOpen ? 'translate-x-0' : 'translate-x-full'
       }`}>
-        <div className="p-6">
+        <div className="p-6 h-full overflow-y-auto pb-8">
           <div className="flex justify-between items-center mb-6">
             <h2 className="text-xl font-bold">
               {activeTab === 'legend' ? 'Graph Legend' : 'Node Details'}
@@ -131,9 +133,11 @@ export default function LegendPanel({ selectedNode, onClose }) {
               {selectedNode.description && (
                 <div>
                   <h4 className="font-medium mb-2">Description</h4>
-                  <p className="text-sm text-gray-600 leading-relaxed">
-                    {selectedNode.description}
-                  </p>
+                  <div className="max-h-64 overflow-y-auto">
+                    <p className="text-sm text-gray-600 leading-relaxed">
+                      {selectedNode.description}
+                    </p>
+                  </div>
                 </div>
               )}
               
